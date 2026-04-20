@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#001529">
+  <title>Japan Flight ✈</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #001529;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    }
+
+    /* ── MAP ── */
+    #map { position: absolute; inset: 0; }
+
+    /* ── HUD TOP BAR ── */
+    #hud {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: env(safe-area-inset-top, 28px) 16px 14px;
+      background: linear-gradient(180deg, rgba(0,10,25,.88) 0%, transparent 100%);
+      display: flex; align-items: center; justify-content: space-between;
+      pointer-events: none; z-index: 10;
+    }
+    .metric { text-align: center; min-width: 72px; }
+    .metric-label { color: #4FC3F7; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; display: block; }
+    .metric-value { color: #fff; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; display: block; line-height: 1.1; }
+    .metric-unit  { color: #607D8B; font-size: 10px; display: block; }
+    #hud-center { flex: 1; text-align: center; }
+    #app-title { color: rgba(255,255,255,.55); font-size: 11px; font-weight: 700; letter-spacing: 3px; }
+    #auto-badge {
+      display: none; margin: 4px auto 0; width: fit-content;
+      background: rgba(255,213,79,.18); border: 1px solid #FFD54F;
+      border-radius: 8px; padding: 2px 10px;
+      color: #FFD54F; font-size: 9px; font-weight: 700; letter-spacing: 2px;
+    }
+    #auto-badge.on { display: block; }
+
+    /* ── COMPASS ── */
+    #compass {
+      position: absolute; right: 14px;
+      top: calc(env(safe-area-inset-top, 28px) + 90px);
+      display: flex; flex-direction: column; align-items: center;
+      pointer-events: none; z-index: 10;
+    }
+    #compass-ring {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(79,195,247,.65);
+      background: rgba(0,10,25,.65);
+      display: flex; justify-content: center; align-items: center; overflow: hidden;
+    }
+    #compass-needle { width: 4px; height: 34px; display: flex; flex-direction: column; }
+    .ndl-n { flex: 1; background: #F44336; border-radius: 2px 2px 0 0; }
+    .ndl-s { flex: 1; background: #ECEFF1; border-radius: 0 0 2px 2px; }
+    #compass-dir { color: #fff; font-size: 12px; font-weight: 700; margin-top: 3px; }
+    #compass-deg { color: #607D8B; font-size: 10px; }
+
+    /* ── LOCATION BANNER ── */
+    #banner {
+      position: absolute; top: 45%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,.5); color: #FFD54F;
+      font-size: 19px; font-weight: 700;
+      padding: 9px 22px; border-radius: 22px;
+      white-space: nowrap;
+      opacity: 0; transition: opacity .4s;
+      pointer-events: none; z-index: 20;
+      text-shadow: 1px 1px 6px rgba(0,0,0,.9);
+    }
+    #banner.on { opacity: 1; }
+
+    /* ── CROSSHAIR ── */
+    #xhair {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 26px; height: 26px;
+      pointer-events: none; z-index: 5;
+    }
+    #xhair::before, #xhair::after {
+      content: ''; position: absolute; background: rgba(255,255,255,.35);
+    }
+    #xhair::before { width: 100%; height: 1px; top: 50%; left: 0; }
+    #xhair::after  { width: 1px; height: 100%; top: 0; left: 50%; }
+
+    /* ── CONTROLS LAYER ── */
+    #controls { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
+
+    /* joystick */
+    #js-wrap {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 32px); left: 18px;
+      display: flex; flex-direction: column; align-items: center;
+      pointer-events: auto;
+    }
+    #js-wrap.disabled { opacity: .3; pointer-events: none; }
+    .ctrl-hint { color: rgba(255,255,255,.4); font-size: 10px; letter-spacing: 1px; margin-bottom: 5px; }
+    #js-base {
+      width: 128px; height: 128px; border-radius: 64px;
+      background: rgba(0,20,40,.58); border: 2px solid rgba(79,195,247,.5);
+      display: flex; justify-content: center; align-items: center;
+      touch-action: none; position: relative; overflow: hidden;
+    }
+    #js-base::before, #js-base::after {
+      content: ''; position: absolute; background: rgba(79,195,247,.22);
+    }
+    #js-base::before { width: 108px; height: 1px; }
+    #js-base::after  { width: 1px; height: 108px; }
+    #js-knob {
+      width: 50px; height: 50px; border-radius: 25px;
+      background: rgba(79,195,247,.88); border: 2px solid rgba(255,255,255,.82);
+      box-shadow: 0 0 14px rgba(79,195,247,.75);
+      position: absolute; pointer-events: none;
+    }
+
+    /* altitude */
+    #alt-ctrl {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 32px); right: 18px;
+      display: flex; flex-direction: column; align-items: center;
+      background: rgba(0,10,25,.68); border: 1px solid rgba(79,195,247,.3);
+      border-radius: 14px; padding: 8px 6px;
+      pointer-events: auto;
+    }
+    .alt-btn {
+      width: 52px; height: 44px; border-radius: 9px;
+      background: rgba(79,195,247,.18); border: none;
+      color: #4FC3F7; font-size: 15px; font-weight: 700;
+      cursor: pointer; touch-action: manipulation;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin: 2px 0;
+    }
+    .alt-btn small { color: rgba(255,255,255,.4); font-size: 9px; font-weight: 400; }
+    #alt-readout { text-align: center; padding: 3px 0; }
+    #alt-num { color: #fff; font-size: 13px; font-weight: 700; display: block; font-variant-numeric: tabular-nums; }
+    #alt-unit { color: #607D8B; font-size: 10px; display: block; }
+
+    /* center pills */
+    #pills {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 32px);
+      left: 164px; right: 88px;
+      display: flex; flex-direction: column; align-items: stretch; gap: 7px;
+      pointer-events: auto;
+    }
+    .pill {
+      background: rgba(0,10,25,.72); border: 1px solid rgba(79,195,247,.42);
+      border-radius: 18px; padding: 7px 10px; text-align: center; cursor: pointer;
+      touch-action: manipulation;
+    }
+    .pill-lbl { color: #607D8B; font-size: 9px; letter-spacing: 1px; display: block; }
+    .pill-val { color: #fff; font-size: 12px; font-weight: 700; display: block; margin-top: 1px; }
+    #tour-pill { border-color: rgba(255,213,79,.42); }
+    #tour-pill .pill-lbl { color: #FFD54F; }
+    #tour-pill .pill-val { color: #FFD54F; }
+    #tour-pill.on { background: rgba(255,213,79,.16); border-color: #FFD54F; }
+
+    /* ── LANDMARK SHEET ── */
+    #lm-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 30;
+      display: none; flex-direction: column; justify-content: flex-end;
+    }
+    #lm-overlay.on { display: flex; }
+    #lm-sheet {
+      background: #0B1829; border-top: 1px solid rgba(79,195,247,.3);
+      border-radius: 22px 22px 0 0;
+      padding: 22px 22px calc(env(safe-area-inset-bottom, 0px) + 22px);
+      max-height: 76vh; display: flex; flex-direction: column;
+    }
+    #sheet-title { color: #fff; font-size: 20px; font-weight: 700; }
+    #sheet-sub   { color: #607D8B; font-size: 12px; margin: 4px 0 16px; }
+    #lm-list { overflow-y: auto; flex: 1; }
+    .lm-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.07); cursor: pointer;
+    }
+    .lm-name { color: #fff; font-size: 16px; font-weight: 600; }
+    .lm-meta { color: #607D8B; font-size: 11px; margin-top: 2px; }
+    .lm-arr  { color: #4FC3F7; font-size: 22px; }
+    #sheet-close {
+      margin-top: 16px; background: rgba(79,195,247,.12);
+      border: 1px solid rgba(79,195,247,.4); border-radius: 12px;
+      padding: 14px; color: #4FC3F7; font-size: 15px; font-weight: 600;
+      text-align: center; cursor: pointer;
+    }
+
+    /* ── ERROR SCREEN ── */
+    #err {
+      display: none; position: absolute; inset: 0;
+      background: #001529; z-index: 100;
+      flex-direction: column; justify-content: center; align-items: center;
+      padding: 32px; text-align: center;
+    }
+    #err.on { display: flex; }
+    #err h2 { color: #F44336; font-size: 22px; margin-bottom: 16px; }
+    #err p  { color: rgba(255,255,255,.75); font-size: 14px; line-height: 1.7; }
+    #err code { color: #4FC3F7; background: rgba(79,195,247,.1); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="metric">
+    <span class="metric-label">SPD</span>
+    <span class="metric-value" id="spd">0</span>
+    <span class="metric-unit">km/h</span>
+  </div>
+  <div id="hud-center">
+    <div id="app-title">✈ JAPAN FLIGHT</div>
+    <div id="auto-badge">AUTO TOUR</div>
+  </div>
+  <div class="metric">
+    <span class="metric-label">ALT</span>
+    <span class="metric-value" id="alt">3000</span>
+    <span class="metric-unit">m</span>
+  </div>
+</div>
+
+<!-- Compass -->
+<div id="compass">
+  <div id="compass-ring">
+    <div id="compass-needle"><div class="ndl-n"></div><div class="ndl-s"></div></div>
+  </div>
+  <div id="compass-dir">N</div>
+  <div id="compass-deg">0°</div>
+</div>
+
+<!-- Banner -->
+<div id="banner"></div>
+
+<!-- Crosshair -->
+<div id="xhair"></div>
+
+<!-- Controls -->
+<div id="controls">
+  <!-- Joystick -->
+  <div id="js-wrap">
+    <span class="ctrl-hint">操縦桿</span>
+    <div id="js-base"><div id="js-knob"></div></div>
+  </div>
+
+  <!-- Altitude -->
+  <div id="alt-ctrl">
+    <button class="alt-btn" id="btn-up">▲<small>上昇</small></button>
+    <div id="alt-readout">
+      <span id="alt-num">3,000</span>
+      <span id="alt-unit">m</span>
+    </div>
+    <button class="alt-btn" id="btn-dn">▼<small>降下</small></button>
+  </div>
+
+  <!-- Pills (center) -->
+  <div id="pills">
+    <div class="pill" id="spd-pill">
+      <span class="pill-lbl">スピード</span>
+      <span class="pill-val" id="spd-val">MED</span>
+    </div>
+    <div class="pill" id="tour-pill">
+      <span class="pill-lbl">自動ツアー</span>
+      <span class="pill-val" id="tour-val">開始</span>
+    </div>
+    <div class="pill" id="lm-pill">
+      <span class="pill-lbl">名所</span>
+      <span class="pill-val">一覧 ›</span>
+    </div>
+  </div>
+</div>
+
+<!-- Landmark sheet -->
+<div id="lm-overlay">
+  <div id="lm-sheet">
+    <div id="sheet-title">✈ 名所一覧</div>
+    <div id="sheet-sub">タップしてその場所へ飛びます</div>
+    <div id="lm-list"></div>
+    <div id="sheet-close">閉じる</div>
+  </div>
+</div>
+
+<!-- Error screen -->
+<div id="err">
+  <h2>⚠️ Google Maps エラー</h2>
+  <p>
+    <code>index.html</code> の末尾にある<br>
+    <code>YOUR_GOOGLE_MAPS_API_KEY</code> を<br>
+    実際のAPIキーに書き換えてください。<br><br>
+    Google Cloud Console で<br>
+    <strong>Maps JavaScript API</strong> を有効にしてください。
+  </p>
+</div>
+
+<script>
+// ================================================================
+//  DATA
+// ================================================================
+const LANDMARKS = [
+  { id:'tokyo_tower',  name:'東京タワー',           nameEn:'Tokyo Tower',          lat:35.6586, lng:139.7454, alt:2000, hdg:45  },
+  { id:'shibuya',      name:'渋谷スクランブル交差点', nameEn:'Shibuya Crossing',     lat:35.6595, lng:139.7004, alt:600,  hdg:90  },
+  { id:'mt_fuji',      name:'富士山',               nameEn:'Mt. Fuji',             lat:35.3606, lng:138.7274, alt:8000, hdg:120 },
+  { id:'osaka_castle', name:'大阪城',               nameEn:'Osaka Castle',         lat:34.6873, lng:135.5262, alt:1500, hdg:270 },
+  { id:'fushimi',      name:'伏見稲荷大社',          nameEn:'Fushimi Inari',        lat:34.9671, lng:135.7727, alt:1800, hdg:180 },
+  { id:'himeji',       name:'姫路城',               nameEn:'Himeji Castle',        lat:34.8394, lng:134.6939, alt:1500, hdg:315 },
+  { id:'hiroshima',    name:'広島平和記念公園',       nameEn:'Hiroshima Peace Park', lat:34.3955, lng:132.4536, alt:2000, hdg:0   },
+  { id:'mt_aso',       name:'阿蘇山',               nameEn:'Mt. Aso',              lat:32.8833, lng:131.0833, alt:5000, hdg:45  },
+  { id:'okinawa',      name:'沖縄・那覇',            nameEn:'Naha, Okinawa',        lat:26.2124, lng:127.6809, alt:3000, hdg:0   },
+  { id:'sapporo',      name:'札幌・北海道',          nameEn:'Sapporo, Hokkaido',    lat:43.0618, lng:141.3545, alt:3000, hdg:180 },
+  { id:'nikko',        name:'日光東照宮',            nameEn:'Nikko Toshogu',        lat:36.7582, lng:139.5990, alt:2500, hdg:30  },
+  { id:'aso_highway',  name:'九州自動車道',          nameEn:'Kyushu Expressway',    lat:32.0,    lng:130.8,   alt:5000, hdg:10  },
+];
+
+const JAPAN = { minLat:24, maxLat:45.5, minLng:122, maxLng:153 };
+
+const SPEEDS = [
+  { label:'LOW',  kmh:300,  mps:83   },
+  { label:'MED',  kmh:900,  mps:250  },
+  { label:'HIGH', kmh:2700, mps:750  },
+  { label:'MAX',  kmh:8100, mps:2250 },
+];
+
+const AUTO_MPS       = 600;
+const AUTO_TURN_S    = 90;   // deg/s max turn rate
+const AUTO_ALT_S     = 120;  // m/s altitude adjust
+const ARRIVAL_M      = 7000;
+const ORBIT_SECS     = 6;
+
+// ================================================================
+//  FLIGHT STATE
+// ================================================================
+const F = { lat:35.6762, lng:139.6503, alt:3000, hdg:30 };
+const js = { x:0, y:0 };
+let spdIdx   = 1;
+let autoOn   = false;
+let tourIdx  = 0;
+let phase    = 'FLY';  // 'FLY' | 'ORBIT'
+let orbitT   = 0;
+let map      = null;
+let bannerTm = null;
+let lastTs   = null;
+
+// ================================================================
+//  MATH
+// ================================================================
+const R2D = 180/Math.PI, D2R = Math.PI/180;
+const toRad = d => d*D2R;
+const toDeg = r => r*R2D;
+const norm  = h => ((h%360)+360)%360;
+
+function movePt(lat,lng,hdg,dist){
+  const lr=toRad(lat),lgr=toRad(lng),hr=toRad(hdg),a=dist/6371000;
+  const nl=Math.asin(Math.sin(lr)*Math.cos(a)+Math.cos(lr)*Math.sin(a)*Math.cos(hr));
+  const ng=lgr+Math.atan2(Math.sin(hr)*Math.sin(a)*Math.cos(lr),Math.cos(a)-Math.sin(lr)*Math.sin(nl));
+  return {lat:toDeg(nl),lng:toDeg(ng)};
+}
+
+function brng(a,b,c,d){
+  const dl=toRad(d-b);
+  const y=Math.sin(dl)*Math.cos(toRad(c));
+  const x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(dl);
+  return norm(toDeg(Math.atan2(y,x)));
+}
+
+function dist(a,b,c,d){
+  const dlt=toRad(c-a),dlg=toRad(d-b);
+  const s=Math.sin(dlt/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dlg/2)**2;
+  return 6371000*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+}
+
+function steer(cur,tgt,rate,dt){
+  let d=tgt-cur; while(d>180)d-=360; while(d<-180)d+=360;
+  return norm(cur+Math.sign(d)*Math.min(Math.abs(d),rate*dt));
+}
+
+function lerpAlt(c,t,r,dt){ const d=t-c; return Math.abs(d)<r*dt?t:c+Math.sign(d)*r*dt; }
+
+function altZoom(a){ return Math.max(8,Math.min(18,17-Math.log2(a/300))); }
+
+function clamp(p){ return {lat:Math.max(JAPAN.minLat,Math.min(JAPAN.maxLat,p.lat)),lng:Math.max(JAPAN.minLng,Math.min(JAPAN.maxLng,p.lng))}; }
+
+function compass(h){ return ['N','NE','E','SE','S','SW','W','NW'][Math.round(norm(h)/45)%8]; }
+
+// ================================================================
+//  DOM REFS
+// ================================================================
+const $spd    = document.getElementById('spd');
+const $alt    = document.getElementById('alt');
+const $altNum = document.getElementById('alt-num');
+const $cNdl   = document.getElementById('compass-needle');
+const $cDir   = document.getElementById('compass-dir');
+const $cDeg   = document.getElementById('compass-deg');
+const $banner = document.getElementById('banner');
+const $badge  = document.getElementById('auto-badge');
+const $jsWrap = document.getElementById('js-wrap');
+const $jsKnob = document.getElementById('js-knob');
+const $tourP  = document.getElementById('tour-pill');
+const $tourV  = document.getElementById('tour-val');
+const $spdV   = document.getElementById('spd-val');
+const $lmOvl  = document.getElementById('lm-overlay');
+
+// ================================================================
+//  HUD UPDATE
+// ================================================================
+function updateHUD(sKmh, aM, h){
+  $spd.textContent    = Math.round(sKmh);
+  const as = Math.round(aM).toLocaleString('ja-JP');
+  $alt.textContent    = as;
+  $altNum.textContent = as;
+  const hn = norm(h);
+  $cNdl.style.transform = `rotate(${hn}deg)`;
+  $cDir.textContent = compass(hn);
+  $cDeg.textContent = Math.round(hn)+'°';
+}
+
+function showBanner(name){
+  $banner.textContent = name;
+  $banner.classList.add('on');
+  clearTimeout(bannerTm);
+  bannerTm = setTimeout(()=>$banner.classList.remove('on'), 3400);
+}
+
+function setAutoUI(on){
+  $badge.classList.toggle('on',on);
+  $tourP.classList.toggle('on',on);
+  $tourV.textContent = on?'停止':'開始';
+  $jsWrap.classList.toggle('disabled',on);
+}
+
+// ================================================================
+//  FLIGHT LOOP
+// ================================================================
+function tick(ts){
+  if(!map){ requestAnimationFrame(tick); return; }
+  if(!lastTs) lastTs=ts;
+  const dt = Math.min((ts-lastTs)/1000, 0.15);
+  lastTs = ts;
+
+  if(autoOn){ tickAuto(dt); } else { tickManual(dt); }
+
+  map.moveCamera({
+    center:{lat:F.lat,lng:F.lng},
+    zoom: altZoom(F.alt),
+    tilt: 45,
+    heading: F.hdg,
+  });
+  requestAnimationFrame(tick);
+}
+
+function tickManual(dt){
+  const fwd=-js.y, trn=js.x;
+  if(Math.abs(fwd)>.04||Math.abs(trn)>.04){
+    const tier=SPEEDS[spdIdx];
+    F.hdg = norm(F.hdg+trn*90*dt);
+    const np=clamp(movePt(F.lat,F.lng,F.hdg,fwd*tier.mps*dt));
+    F.lat=np.lat; F.lng=np.lng;
+    updateHUD(Math.abs(fwd)*tier.kmh, F.alt, F.hdg);
+  } else {
+    updateHUD(0, F.alt, F.hdg);
+  }
+}
+
+function tickAuto(dt){
+  const t=LANDMARKS[tourIdx];
+  if(phase==='FLY'){
+    const b=brng(F.lat,F.lng,t.lat,t.lng);
+    F.hdg = steer(F.hdg,b,AUTO_TURN_S,dt);
+    F.alt = lerpAlt(F.alt,t.alt,AUTO_ALT_S,dt);
+    const np=clamp(movePt(F.lat,F.lng,F.hdg,AUTO_MPS*dt));
+    F.lat=np.lat; F.lng=np.lng;
+    updateHUD(AUTO_MPS*3.6, F.alt, F.hdg);
+    if(dist(F.lat,F.lng,t.lat,t.lng)<ARRIVAL_M){
+      phase='ORBIT'; orbitT=0; showBanner(t.name);
+    }
+  } else {
+    F.hdg = norm(F.hdg+50*dt);
+    F.alt = Math.max(t.alt*.65, F.alt-40*dt);
+    orbitT += dt;
+    updateHUD(0, F.alt, F.hdg);
+    if(orbitT>=ORBIT_SECS){
+      tourIdx=(tourIdx+1)%LANDMARKS.length;
+      phase='FLY';
+      F.alt=Math.max(F.alt,4000);
+    }
+  }
+}
+
+// ================================================================
+//  JOYSTICK
+// ================================================================
+const jsBase = document.getElementById('js-base');
+const JS_R = 39;
+let jsTouch = null;
+
+jsBase.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  const r=jsBase.getBoundingClientRect();
+  jsTouch={id:t.identifier, cx:r.left+r.width/2, cy:r.top+r.height/2};
+},{passive:false});
+
+jsBase.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  if(!jsTouch)return;
+  let t=null;
+  for(const ch of e.changedTouches) if(ch.identifier===jsTouch.id){t=ch;break;}
+  if(!t)return;
+  let dx=t.clientX-jsTouch.cx, dy=t.clientY-jsTouch.cy;
+  const d=Math.hypot(dx,dy);
+  if(d>JS_R){dx=dx/d*JS_R;dy=dy/d*JS_R;}
+  js.x=dx/JS_R; js.y=dy/JS_R;
+  $jsKnob.style.transform=`translate(${dx}px,${dy}px)`;
+},{passive:false});
+
+['touchend','touchcancel'].forEach(ev=>jsBase.addEventListener(ev, e=>{
+  e.preventDefault();
+  js.x=0; js.y=0;
+  $jsKnob.style.transform='translate(0,0)';
+  jsTouch=null;
+},{passive:false}));
+
+// ================================================================
+//  ALTITUDE BUTTONS
+// ================================================================
+let altHold=null;
+
+function altStep(delta){ F.alt=Math.max(150,Math.min(60000,F.alt+delta)); updateHUD(0,F.alt,F.hdg); }
+
+document.getElementById('btn-up').addEventListener('click',()=>altStep(800));
+document.getElementById('btn-dn').addEventListener('click',()=>altStep(-800));
+
+['btn-up','btn-dn'].forEach(id=>{
+  const btn=document.getElementById(id), d=id==='btn-up'?600:-600;
+  btn.addEventListener('touchstart',e=>{e.preventDefault();altHold=setInterval(()=>altStep(d),150);},{passive:false});
+  btn.addEventListener('touchend',  ()=>clearInterval(altHold));
+  btn.addEventListener('touchcancel',()=>clearInterval(altHold));
+});
+
+// ================================================================
+//  SPEED
+// ================================================================
+document.getElementById('spd-pill').addEventListener('click',()=>{
+  spdIdx=(spdIdx+1)%SPEEDS.length;
+  $spdV.textContent=SPEEDS[spdIdx].label;
+});
+
+// ================================================================
+//  AUTO TOUR
+// ================================================================
+document.getElementById('tour-pill').addEventListener('click',()=>{
+  autoOn=!autoOn; setAutoUI(autoOn);
+  if(autoOn){ tourIdx=0; phase='FLY'; showBanner(LANDMARKS[0].name); }
+});
+
+// ================================================================
+//  LANDMARK MENU
+// ================================================================
+const $list=document.getElementById('lm-list');
+LANDMARKS.forEach(lm=>{
+  const row=document.createElement('div');
+  row.className='lm-row';
+  row.innerHTML=`<div><div class="lm-name">${lm.name}</div><div class="lm-meta">${lm.nameEn} · 高度 ${lm.alt.toLocaleString()}m</div></div><div class="lm-arr">›</div>`;
+  row.addEventListener('click',()=>{
+    autoOn=false; setAutoUI(false);
+    Object.assign(F,{lat:lm.lat,lng:lm.lng,alt:lm.alt,hdg:lm.hdg});
+    showBanner(lm.name);
+    $lmOvl.classList.remove('on');
+  });
+  $list.appendChild(row);
+});
+
+document.getElementById('lm-pill').addEventListener('click',()=>$lmOvl.classList.add('on'));
+document.getElementById('sheet-close').addEventListener('click',()=>$lmOvl.classList.remove('on'));
+$lmOvl.addEventListener('click',e=>{ if(e.target===$lmOvl)$lmOvl.classList.remove('on'); });
+
+// ================================================================
+//  MAPS INIT / ERROR
+// ================================================================
+function initMap(){
+  map=new google.maps.Map(document.getElementById('map'),{
+    center:{lat:F.lat,lng:F.lng},
+    zoom:altZoom(F.alt),
+    mapTypeId:'hybrid',
+    tilt:45,
+    heading:F.hdg,
+    disableDefaultUI:true,
+    gestureHandling:'none',
+    keyboardShortcuts:false,
+  });
+  requestAnimationFrame(tick);
+}
+window.initMap=initMap;
+
+// Called by Google Maps SDK on auth failure
+window.gm_authFailure=function(){
+  document.getElementById('err').classList.add('on');
+};
+</script>
+
+<!--
+  ★ ここを書き換えてください ★
+  YOUR_GOOGLE_MAPS_API_KEY → Google Cloud ConsoleのAPIキー文字列（AIzaSy...）
+  必要なAPI: Maps JavaScript API
+-->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap&v=weekly&loading=async">
+</script>
+
+</body>
+</html>
