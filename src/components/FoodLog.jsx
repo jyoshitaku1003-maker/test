@@ -4,6 +4,43 @@ import { analyzeFoodText, analyzeFoodImage, fileToBase64 } from '../utils/openai
 
 const MEAL_TYPES = ['朝食', '昼食', '夕食', '間食'];
 
+function AiResultItem({ item, index, onChange, onAdd, onRemove }) {
+  return (
+    <div className="ai-edit-item">
+      <div className="ai-edit-header">
+        <input
+          className="ai-edit-name"
+          value={item.name}
+          onChange={(e) => onChange(index, 'name', e.target.value)}
+          placeholder="食品名"
+        />
+        <button className="icon-btn danger" onClick={() => onRemove(index)}>✕</button>
+      </div>
+      <div className="ai-edit-row">
+        <div className="ai-edit-field">
+          <span>kcal</span>
+          <input type="number" value={item.calories} onChange={(e) => onChange(index, 'calories', e.target.value)} />
+        </div>
+        <div className="ai-edit-field">
+          <span>P(g)</span>
+          <input type="number" value={item.protein} onChange={(e) => onChange(index, 'protein', e.target.value)} />
+        </div>
+        <div className="ai-edit-field">
+          <span>C(g)</span>
+          <input type="number" value={item.carbs} onChange={(e) => onChange(index, 'carbs', e.target.value)} />
+        </div>
+        <div className="ai-edit-field">
+          <span>F(g)</span>
+          <input type="number" value={item.fat} onChange={(e) => onChange(index, 'fat', e.target.value)} />
+        </div>
+      </div>
+      <button className="btn-outline-sm" style={{ marginTop: 6, width: '100%' }} onClick={() => onAdd(item)}>
+        この1品を追加
+      </button>
+    </div>
+  );
+}
+
 function FoodItem({ item, onDelete }) {
   return (
     <div className="list-item">
@@ -70,14 +107,20 @@ export default function FoodLog({ profile }) {
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
 
+  const updateAiItem = (i, field, val) => {
+    setAiItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+  };
+
+  const removeAiItem = (i) => setAiItems((prev) => prev.filter((_, idx) => idx !== i));
+
   const addAiItem = async (item) => {
-    await addFoodEntry({ date, mealType, name: item.name, calories: item.calories, protein: item.protein || 0, carbs: item.carbs || 0, fat: item.fat || 0 });
+    await addFoodEntry({ date, mealType, name: item.name, calories: Number(item.calories) || 0, protein: Number(item.protein) || 0, carbs: Number(item.carbs) || 0, fat: Number(item.fat) || 0 });
     refresh();
   };
 
   const addAllAiItems = async () => {
     for (const item of aiItems) {
-      await addFoodEntry({ date, mealType, name: item.name, calories: item.calories, protein: item.protein || 0, carbs: item.carbs || 0, fat: item.fat || 0 });
+      await addFoodEntry({ date, mealType, name: item.name, calories: Number(item.calories) || 0, protein: Number(item.protein) || 0, carbs: Number(item.carbs) || 0, fat: Number(item.fat) || 0 });
     }
     setAiItems([]); setAiText(''); setShowModal(false); refresh();
   };
@@ -149,12 +192,9 @@ export default function FoodLog({ profile }) {
                 <button className="btn-primary" onClick={handleAiAnalyze} disabled={loading}>{loading ? '解析中...' : 'AIで解析'}</button>
                 {aiItems.length > 0 && (
                   <div className="ai-results">
-                    <p className="ai-results-title">解析結果</p>
+                    <p className="ai-results-title">解析結果（修正できます）</p>
                     {aiItems.map((item, i) => (
-                      <div key={i} className="ai-item">
-                        <div><strong>{item.name}</strong><div className="ai-item-macro">{item.calories} kcal · P:{item.protein}g C:{item.carbs}g F:{item.fat}g</div></div>
-                        <button className="btn-outline-sm" onClick={() => addAiItem(item)}>追加</button>
-                      </div>
+                      <AiResultItem key={i} item={item} index={i} onChange={updateAiItem} onAdd={addAiItem} onRemove={removeAiItem} />
                     ))}
                     <button className="btn-primary" style={{ marginTop: 8 }} onClick={addAllAiItems}>すべて追加</button>
                   </div>
@@ -164,7 +204,7 @@ export default function FoodLog({ profile }) {
             {mode === 'image' && (
               <>
                 <div className="upload-area" onClick={() => fileRef.current?.click()}>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageAnalyze} />
+                  <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleImageAnalyze} />
                   <div className="upload-icon">📷</div>
                   <p>食事の写真またはレシートを選択</p>
                   <span className="upload-hint">タップしてファイルを選択</span>
@@ -173,12 +213,9 @@ export default function FoodLog({ profile }) {
                 {error && <p className="error-msg">{error}</p>}
                 {aiItems.length > 0 && (
                   <div className="ai-results">
-                    <p className="ai-results-title">解析結果</p>
+                    <p className="ai-results-title">解析結果（修正できます）</p>
                     {aiItems.map((item, i) => (
-                      <div key={i} className="ai-item">
-                        <div><strong>{item.name}</strong><div className="ai-item-macro">{item.calories} kcal · P:{item.protein}g C:{item.carbs}g F:{item.fat}g</div></div>
-                        <button className="btn-outline-sm" onClick={() => addAiItem(item)}>追加</button>
-                      </div>
+                      <AiResultItem key={i} item={item} index={i} onChange={updateAiItem} onAdd={addAiItem} onRemove={removeAiItem} />
                     ))}
                     <button className="btn-primary" style={{ marginTop: 8 }} onClick={addAllAiItems}>すべて追加</button>
                   </div>

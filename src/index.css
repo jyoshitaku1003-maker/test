@@ -482,6 +482,55 @@ body {
 .ai-item-meta { color: var(--text-muted); font-size: 12px; }
 .ai-item-macro { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
+.ai-edit-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+.ai-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ai-edit-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  padding: 2px 4px;
+  outline: none;
+}
+.ai-edit-row {
+  display: flex;
+  gap: 6px;
+}
+.ai-edit-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ai-edit-field span {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.ai-edit-field input {
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 2px;
+  font-size: 13px;
+  background: var(--card);
+}
+
 /* ── Upload area ── */
 .upload-area {
   border: 2px dashed var(--border);
