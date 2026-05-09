@@ -25,6 +25,12 @@ app.use('/api/analyze', analyzeRoutes);
 app.use(express.static(join(__dirname, '../dist')));
 app.get('*', (_, res) => res.sendFile(join(__dirname, '../dist/index.html')));
 
+// Global error handler
+app.use((err, req, res, _next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(500).json({ error: err.message });
+});
+
 const PORT = process.env.PORT || 3000;
 
 migrate()
