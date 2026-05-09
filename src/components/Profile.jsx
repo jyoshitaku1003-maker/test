@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { saveProfile } from '../utils/api';
 import { calcBMR, calcTDEE, calcTargetCalories, calcAge } from '../utils/calculations';
 
@@ -51,8 +51,6 @@ export default function Profile({ profile, onSave, onLogout }) {
   const [birthdayInput, setBirthdayInput] = useState(() => toDisplay(profile?.birthday || ''));
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-  const calendarRef = useRef(null);
-
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleBirthdayChange = (e) => {
@@ -115,20 +113,15 @@ export default function Profile({ profile, onSave, onLogout }) {
               value={birthdayInput}
               onChange={handleBirthdayChange}
             />
-            <button
-              type="button"
-              className="calendar-btn"
-              onClick={() => calendarRef.current?.showPicker?.() || calendarRef.current?.click()}
-              aria-label="カレンダーから選択"
-            >
+            <label htmlFor="birthday-calendar" className="calendar-btn" aria-label="カレンダーから選択">
               📅
-            </button>
+            </label>
             <input
-              ref={calendarRef}
+              id="birthday-calendar"
               type="date"
               value={form.birthday}
               onChange={handleCalendarChange}
-              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, right: 0, top: 0 }}
             />
           </div>
           {age !== null && <p className="field-hint">{age}歳</p>}
