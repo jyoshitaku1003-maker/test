@@ -11,14 +11,14 @@ router.get('/', async (req, res) => {
 });
 
 router.put('/', async (req, res) => {
-  const { name, age, gender, height, weight, activity_level, goal, openai_api_key } = req.body;
+  const { name, age, gender, height, weight, activity_level, goal } = req.body;
   await pool.query(`
-    INSERT INTO profiles (user_id, name, age, gender, height, weight, activity_level, goal, openai_api_key, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, NOW())
+    INSERT INTO profiles (user_id, name, age, gender, height, weight, activity_level, goal, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       name=$2, age=$3, gender=$4, height=$5, weight=$6,
-      activity_level=$7, goal=$8, openai_api_key=$9, updated_at=NOW()
-  `, [req.userId, name, age, gender, height, weight, activity_level, goal, openai_api_key]);
+      activity_level=$7, goal=$8, updated_at=NOW()
+  `, [req.userId, name, age, gender, height, weight, activity_level, goal]);
   res.json({ ok: true });
 });
 

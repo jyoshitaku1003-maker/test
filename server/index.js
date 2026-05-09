@@ -7,6 +7,7 @@ import profileRoutes from './routes/profile.js';
 import weightRoutes from './routes/weight.js';
 import foodRoutes from './routes/food.js';
 import exerciseRoutes from './routes/exercise.js';
+import analyzeRoutes from './routes/analyze.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/weight', weightRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/exercise', exerciseRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 // Serve React build
 app.use(express.static(join(__dirname, '../dist')));

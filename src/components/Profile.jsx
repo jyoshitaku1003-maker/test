@@ -18,7 +18,7 @@ const GOAL_OPTIONS = [
 
 export default function Profile({ profile, onSave, onLogout }) {
   const [form, setForm] = useState(
-    profile || { name: '', age: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose', openai_api_key: '' }
+    profile || { name: '', age: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose' }
   );
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -72,12 +72,6 @@ export default function Profile({ profile, onSave, onLogout }) {
           <p className="info-note">＊ Mifflin-St Jeor 式で計算</p>
         </div>
       )}
-
-      <div className="card">
-        <h3 className="card-title">AI機能設定</h3>
-        <p className="section-desc">写真・レシート・テキストから食事を自動解析するにはOpenAI APIキーが必要です。</p>
-        <div className="form-field"><label>OpenAI APIキー</label><input type="password" placeholder="sk-..." value={form.openai_api_key} onChange={(e) => set('openai_api_key', e.target.value)} /></div>
-      </div>
 
       {error && <p className="error-msg">{error}</p>}
       <button className="btn-primary large" onClick={handleSave}>{saved ? '✓ 保存しました' : 'プロフィールを保存'}</button>

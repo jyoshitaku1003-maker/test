@@ -51,11 +51,10 @@ export default function FoodLog({ profile }) {
   };
 
   const handleAiAnalyze = async () => {
-    if (!profile?.openai_api_key) { setError('設定でOpenAI APIキーを入力してください'); return; }
     if (!aiText.trim()) { setError('テキストを入力してください'); return; }
     setLoading(true); setError('');
     try {
-      const result = await analyzeFoodText(profile.openai_api_key, aiText);
+      const result = await analyzeFoodText(aiText);
       setAiItems(result.items || []);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
@@ -63,11 +62,10 @@ export default function FoodLog({ profile }) {
   const handleImageAnalyze = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!profile?.openai_api_key) { setError('設定でOpenAI APIキーを入力してください'); return; }
     setLoading(true); setError('');
     try {
       const b64 = await fileToBase64(file);
-      const result = await analyzeFoodImage(profile.openai_api_key, b64, file.type);
+      const result = await analyzeFoodImage(b64, file.type);
       setAiItems(result.items || []);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };

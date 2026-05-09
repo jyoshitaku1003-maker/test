@@ -18,7 +18,6 @@ export async function migrate() {
       weight NUMERIC(5,2),
       activity_level VARCHAR(20),
       goal VARCHAR(20),
-      openai_api_key TEXT,
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
