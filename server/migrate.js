@@ -12,7 +12,7 @@ export async function migrate() {
     CREATE TABLE IF NOT EXISTS profiles (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       name VARCHAR(255),
-      age INTEGER,
+      birthday DATE,
       gender VARCHAR(10),
       height NUMERIC(5,2),
       weight NUMERIC(5,2),
@@ -52,5 +52,18 @@ export async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // age → birthday カラム移行（既存DBへの対応）
+  await pool.query(`
+    DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='age') THEN
+        ALTER TABLE profiles DROP COLUMN age;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='birthday') THEN
+        ALTER TABLE profiles ADD COLUMN birthday DATE;
+      END IF;
+    END $$;
+  `);
+
   console.log('Database migration complete');
 }

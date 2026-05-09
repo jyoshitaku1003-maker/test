@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveProfile } from '../utils/api';
-import { calcBMR, calcTDEE, calcTargetCalories } from '../utils/calculations';
+import { calcBMR, calcTDEE, calcTargetCalories, calcAge } from '../utils/calculations';
 
 const ACTIVITY_OPTIONS = [
   { value: 'sedentary', label: '座り仕事が多い (×1.2)' },
@@ -18,7 +18,7 @@ const GOAL_OPTIONS = [
 
 export default function Profile({ profile, onSave, onLogout }) {
   const [form, setForm] = useState(
-    profile || { name: '', age: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose' }
+    profile || { name: '', birthday: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose' }
   );
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -37,10 +37,12 @@ export default function Profile({ profile, onSave, onLogout }) {
     }
   };
 
-  const isComplete = form.name && form.age && form.height && form.weight;
+  const isComplete = form.name && form.birthday && form.height && form.weight;
   const previewProfile = isComplete
-    ? { ...form, age: Number(form.age), height: Number(form.height), weight: Number(form.weight), activityLevel: form.activity_level }
+    ? { ...form, height: Number(form.height), weight: Number(form.weight), activityLevel: form.activity_level }
     : null;
+
+  const age = form.birthday ? calcAge(form.birthday) : null;
 
   return (
     <div className="screen">
@@ -48,10 +50,22 @@ export default function Profile({ profile, onSave, onLogout }) {
 
       <div className="card">
         <h3 className="card-title">基本情報</h3>
-        <div className="form-field"><label>名前</label><input placeholder="例: 田中 太郎" value={form.name} onChange={(e) => set('name', e.target.value)} /></div>
+        <div className="form-field">
+          <label>ニックネーム</label>
+          <input placeholder="例: たろう" value={form.name} onChange={(e) => set('name', e.target.value)} />
+        </div>
         <div className="form-row">
-          <div className="form-field"><label>年齢</label><input type="number" placeholder="例: 30" value={form.age} onChange={(e) => set('age', e.target.value)} /></div>
-          <div className="form-field"><label>性別</label><select value={form.gender} onChange={(e) => set('gender', e.target.value)}><option value="male">男性</option><option value="female">女性</option></select></div>
+          <div className="form-field">
+            <label>生年月日{age !== null && <span style={{ color: 'var(--primary)', marginLeft: 8, fontWeight: 700 }}>{age}歳</span>}</label>
+            <input type="date" value={form.birthday} onChange={(e) => set('birthday', e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>性別</label>
+            <select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+              <option value="male">男性</option>
+              <option value="female">女性</option>
+            </select>
+          </div>
         </div>
         <div className="form-row">
           <div className="form-field"><label>身長 (cm)</label><input type="number" placeholder="例: 170" value={form.height} onChange={(e) => set('height', e.target.value)} /></div>
