@@ -65,6 +65,9 @@ export const addExerciseEntry = (entry) => request('POST', '/exercise', entry);
 export const deleteExerciseEntry = (id) => request('DELETE', `/exercise/${id}`);
 
 // Food corrections (user-specific learned values)
+export const getFoodDailySummary = (from, to) => request('GET', `/food/daily-summary?from=${from}&to=${to}`);
+export const getExerciseDailySummary = (from, to) => request('GET', `/exercise/daily-summary?from=${from}&to=${to}`);
+
 export const getFoodCorrections = () => request('GET', '/food-corrections');
 export const saveFoodCorrection = (item) => request('PUT', '/food-corrections', item);
 

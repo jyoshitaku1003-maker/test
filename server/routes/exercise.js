@@ -5,6 +5,22 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 router.use(requireAuth);
 
+router.get('/daily-summary', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const r = await pool.query(
+      `SELECT date::text, SUM(calories)::int AS calories
+       FROM exercise_log WHERE user_id=$1 AND date BETWEEN $2 AND $3
+       GROUP BY date ORDER BY date`,
+      [req.userId, from, to]
+    );
+    res.json(r.rows);
+  } catch (e) {
+    console.error('GET /exercise/daily-summary:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { date } = req.query;
