@@ -64,6 +64,10 @@ export const getExerciseByDate = (date) => request('GET', `/exercise?date=${date
 export const addExerciseEntry = (entry) => request('POST', '/exercise', entry);
 export const deleteExerciseEntry = (id) => request('DELETE', `/exercise/${id}`);
 
+// Food corrections (user-specific learned values)
+export const getFoodCorrections = () => request('GET', '/food-corrections');
+export const saveFoodCorrection = (item) => request('PUT', '/food-corrections', item);
+
 export function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }

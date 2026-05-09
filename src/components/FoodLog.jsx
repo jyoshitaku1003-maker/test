@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { addFoodEntry, deleteFoodEntry, getFoodByDate, todayStr } from '../utils/api';
+import { addFoodEntry, deleteFoodEntry, getFoodByDate, todayStr, getFoodCorrections, saveFoodCorrection } from '../utils/api';
 import { analyzeFoodText, analyzeFoodImage, fileToBase64 } from '../utils/openai';
 
 const MEAL_TYPES = ['朝食', '昼食', '夕食', '間食'];
@@ -65,6 +65,7 @@ export default function FoodLog({ profile }) {
   const [form, setForm] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '' });
   const [aiText, setAiText] = useState('');
   const [aiItems, setAiItems] = useState([]);
+  const [corrections, setCorrections] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef();
@@ -72,6 +73,14 @@ export default function FoodLog({ profile }) {
   const refresh = () => getFoodByDate(date).then(setEntries).catch(() => {});
 
   useEffect(() => { refresh(); }, [date]);
+
+  useEffect(() => {
+    getFoodCorrections().then((list) => {
+      const map = {};
+      list.forEach((c) => { map[c.name.toLowerCase()] = c; });
+      setCorrections(map);
+    }).catch(() => {});
+  }, []);
 
   const handleDelete = async (id) => {
     await deleteFoodEntry(id).catch(() => {});
@@ -87,12 +96,18 @@ export default function FoodLog({ profile }) {
     setShowModal(false);
   };
 
+  const applyCorrections = (items) =>
+    items.map((item) => {
+      const c = corrections[item.name.toLowerCase()];
+      return c ? { ...item, calories: c.calories, protein: c.protein, carbs: c.carbs, fat: c.fat } : item;
+    });
+
   const handleAiAnalyze = async () => {
     if (!aiText.trim()) { setError('テキストを入力してください'); return; }
     setLoading(true); setError('');
     try {
       const result = await analyzeFoodText(aiText);
-      setAiItems(result.items || []);
+      setAiItems(applyCorrections(result.items || []));
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
 
@@ -103,7 +118,7 @@ export default function FoodLog({ profile }) {
     try {
       const b64 = await fileToBase64(file);
       const result = await analyzeFoodImage(b64, file.type);
-      setAiItems(result.items || []);
+      setAiItems(applyCorrections(result.items || []));
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
 
@@ -113,15 +128,20 @@ export default function FoodLog({ profile }) {
 
   const removeAiItem = (i) => setAiItems((prev) => prev.filter((_, idx) => idx !== i));
 
+  const persistItem = async (item) => {
+    const entry = { name: item.name, calories: Number(item.calories) || 0, protein: Number(item.protein) || 0, carbs: Number(item.carbs) || 0, fat: Number(item.fat) || 0 };
+    await addFoodEntry({ date, mealType, ...entry });
+    saveFoodCorrection(entry).catch(() => {});
+    setCorrections((prev) => ({ ...prev, [entry.name.toLowerCase()]: entry }));
+  };
+
   const addAiItem = async (item) => {
-    await addFoodEntry({ date, mealType, name: item.name, calories: Number(item.calories) || 0, protein: Number(item.protein) || 0, carbs: Number(item.carbs) || 0, fat: Number(item.fat) || 0 });
+    await persistItem(item);
     refresh();
   };
 
   const addAllAiItems = async () => {
-    for (const item of aiItems) {
-      await addFoodEntry({ date, mealType, name: item.name, calories: Number(item.calories) || 0, protein: Number(item.protein) || 0, carbs: Number(item.carbs) || 0, fat: Number(item.fat) || 0 });
-    }
+    for (const item of aiItems) await persistItem(item);
     setAiItems([]); setAiText(''); setShowModal(false); refresh();
   };
 

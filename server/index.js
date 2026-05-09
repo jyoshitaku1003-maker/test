@@ -8,6 +8,7 @@ import weightRoutes from './routes/weight.js';
 import foodRoutes from './routes/food.js';
 import exerciseRoutes from './routes/exercise.js';
 import analyzeRoutes from './routes/analyze.js';
+import foodCorrectionsRoutes from './routes/foodCorrections.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +21,7 @@ app.use('/api/weight', weightRoutes);
 app.use('/api/food', foodRoutes);
 app.use('/api/exercise', exerciseRoutes);
 app.use('/api/analyze', analyzeRoutes);
+app.use('/api/food-corrections', foodCorrectionsRoutes);
 
 // Serve React build
 app.use(express.static(join(__dirname, '../dist')));

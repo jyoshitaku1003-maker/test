@@ -71,5 +71,19 @@ export async function migrate() {
     END $$;
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS food_corrections (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(255) NOT NULL,
+      calories INTEGER NOT NULL,
+      protein NUMERIC(6,2) DEFAULT 0,
+      carbs NUMERIC(6,2) DEFAULT 0,
+      fat NUMERIC(6,2) DEFAULT 0,
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, name)
+    );
+  `);
+
   console.log('Database migration complete');
 }
