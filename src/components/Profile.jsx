@@ -56,8 +56,9 @@ export default function Profile({ profile, onSave, onLogout }) {
         </div>
         <div className="form-row">
           <div className="form-field">
-            <label>生年月日{age !== null && <span style={{ color: 'var(--primary)', marginLeft: 8, fontWeight: 700 }}>{age}歳</span>}</label>
+            <label>生年月日</label>
             <input type="date" value={form.birthday} onChange={(e) => set('birthday', e.target.value)} />
+            {age !== null && <p className="field-hint">{age}歳</p>}
           </div>
           <div className="form-field">
             <label>性別</label>
