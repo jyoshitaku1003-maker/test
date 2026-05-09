@@ -27,11 +27,31 @@ export function calcTDEE(profile) {
   return Math.round(calcBMR(profile) * (ACTIVITY_FACTORS[profile.activityLevel] || 1.55));
 }
 
-export function calcTargetCalories(profile) {
+export function calcGoalDetails(profile) {
   const tdee = calcTDEE(profile);
-  if (profile.goal === 'lose') return tdee - 500;
-  if (profile.goal === 'gain') return tdee + 500;
-  return tdee;
+  const goalWeight = profile.goal_weight ? Number(profile.goal_weight) : null;
+  const goalDate = profile.goal_date || null;
+
+  if (!goalWeight || !goalDate) return { tdee, dailyAdjustment: 0, target: tdee, days: null, weightDiff: null };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(goalDate);
+  targetDate.setHours(0, 0, 0, 0);
+  const days = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+
+  if (days <= 0) return { tdee, dailyAdjustment: 0, target: tdee, days: 0, weightDiff: null };
+
+  const weightDiff = goalWeight - Number(profile.weight);
+  const totalKcal = weightDiff * 7200;
+  const dailyAdjustment = Math.round(totalKcal / days);
+  const target = tdee + dailyAdjustment;
+
+  return { tdee, dailyAdjustment, target, days, weightDiff };
+}
+
+export function calcTargetCalories(profile) {
+  return calcGoalDetails(profile).target;
 }
 
 export function calcBMI(weight, height) {

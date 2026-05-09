@@ -17,13 +17,13 @@ router.get('/', async (req, res) => {
 
 router.put('/', async (req, res) => {
   try {
-    const { name, birthday, gender, height, weight, activity_level, goal } = req.body;
+    const { name, birthday, gender, height, weight, activity_level, goal_weight, goal_date } = req.body;
     await pool.query(`
-      INSERT INTO profiles (user_id, name, birthday, gender, height, weight, activity_level, goal, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
+      INSERT INTO profiles (user_id, name, birthday, gender, height, weight, activity_level, goal_weight, goal_date, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, NOW())
       ON CONFLICT (user_id) DO UPDATE SET
         name=$2, birthday=$3, gender=$4, height=$5, weight=$6,
-        activity_level=$7, goal=$8, updated_at=NOW()
+        activity_level=$7, goal_weight=$8, goal_date=$9, updated_at=NOW()
     `, [
       req.userId,
       name || null,
@@ -32,7 +32,8 @@ router.put('/', async (req, res) => {
       height ? Number(height) : null,
       weight ? Number(weight) : null,
       activity_level || null,
-      goal || null,
+      goal_weight ? Number(goal_weight) : null,
+      goal_date || null,
     ]);
     res.json({ ok: true });
   } catch (e) {

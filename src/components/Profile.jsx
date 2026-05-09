@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveProfile } from '../utils/api';
-import { calcBMR, calcTDEE, calcTargetCalories, calcAge } from '../utils/calculations';
+import { calcBMR, calcTDEE, calcAge, calcGoalDetails } from '../utils/calculations';
 
 const ACTIVITY_OPTIONS = [
   { value: 'sedentary', label: '座り仕事が多い (×1.2)' },
@@ -10,13 +10,7 @@ const ACTIVITY_OPTIONS = [
   { value: 'very_active', label: '非常に激しい運動 (×1.9)' },
 ];
 
-const GOAL_OPTIONS = [
-  { value: 'lose', label: '体重を減らす (-500 kcal/日)' },
-  { value: 'maintain', label: '体重を維持する' },
-  { value: 'gain', label: '体重を増やす (+500 kcal/日)' },
-];
-
-// YYYY-MM-DD → YYYY/MM/DD (display)
+// YYYY-MM-DD → YYYY/MM/DD
 function toDisplay(value) {
   if (!value) return '';
   const d = value.replace(/-/g, '');
@@ -24,14 +18,12 @@ function toDisplay(value) {
   return value.replace(/-/g, '/');
 }
 
-// raw digit input → formatted display string
 function formatDigits(digits) {
   if (digits.length <= 4) return digits;
   if (digits.length <= 6) return `${digits.slice(0,4)}/${digits.slice(4)}`;
   return `${digits.slice(0,4)}/${digits.slice(4,6)}/${digits.slice(6,8)}`;
 }
 
-// formatted display → YYYY-MM-DD (for storage)
 function toValue(display) {
   const d = display.replace(/\D/g, '');
   if (d.length === 8) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
@@ -40,38 +32,37 @@ function toValue(display) {
 
 function isValidDate(value) {
   if (!value) return false;
-  const d = new Date(value);
-  return !isNaN(d.getTime());
+  return !isNaN(new Date(value).getTime());
+}
+
+// goal_date を "X月X日" 形式で表示
+function formatGoalDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
 export default function Profile({ profile, onSave, onLogout }) {
   const [form, setForm] = useState(
-    profile || { name: '', birthday: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose' }
+    profile || { name: '', birthday: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal_weight: '', goal_date: '' }
   );
   const [birthdayInput, setBirthdayInput] = useState(() => toDisplay(profile?.birthday || ''));
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleBirthdayChange = (e) => {
-    const raw = e.target.value;
-    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
     const formatted = formatDigits(digits);
     setBirthdayInput(formatted);
     const value = toValue(formatted);
-    if (value && isValidDate(value)) {
-      set('birthday', value);
-    } else {
-      set('birthday', '');
-    }
+    set('birthday', value && isValidDate(value) ? value : '');
   };
 
   const handleCalendarChange = (e) => {
-    const value = e.target.value; // YYYY-MM-DD
-    if (value) {
-      set('birthday', value);
-      setBirthdayInput(toDisplay(value));
-    }
+    const value = e.target.value;
+    if (value) { set('birthday', value); setBirthdayInput(toDisplay(value)); }
   };
 
   const handleSave = async () => {
@@ -92,6 +83,7 @@ export default function Profile({ profile, onSave, onLogout }) {
     : null;
 
   const age = form.birthday && isValidDate(form.birthday) ? calcAge(form.birthday) : null;
+  const goalDetails = previewProfile ? calcGoalDetails(previewProfile) : null;
 
   return (
     <div className="screen">
@@ -141,7 +133,25 @@ export default function Profile({ profile, onSave, onLogout }) {
         </div>
         <div className="form-field"><label>体重 (kg)</label><input type="number" step="0.1" placeholder="例: 65" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
         <div className="form-field"><label>活動レベル</label><select value={form.activity_level} onChange={(e) => set('activity_level', e.target.value)}>{ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
-        <div className="form-field"><label>目標</label><select value={form.goal} onChange={(e) => set('goal', e.target.value)}>{GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+      </div>
+
+      <div className="card">
+        <h3 className="card-title">目標設定</h3>
+        <div className="form-row">
+          <div className="form-field">
+            <label>目標体重 (kg)</label>
+            <input type="number" step="0.1" placeholder="例: 60" value={form.goal_weight} onChange={(e) => set('goal_weight', e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label>目標日</label>
+            <input type="date" value={form.goal_date} onChange={(e) => set('goal_date', e.target.value)} />
+          </div>
+        </div>
+        {form.goal_weight && form.goal_date && form.weight && (
+          <p className="field-hint" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+            {formatGoalDate(form.goal_date)}までに{form.goal_weight}kg（{Number(form.goal_weight) >= Number(form.weight) ? '+' : ''}{(Number(form.goal_weight) - Number(form.weight)).toFixed(1)}kg）
+          </p>
+        )}
       </div>
 
       {previewProfile && (
@@ -150,9 +160,26 @@ export default function Profile({ profile, onSave, onLogout }) {
           <div className="info-rows">
             <div className="info-row"><span>基礎代謝 (BMR)</span><strong>{calcBMR(previewProfile).toLocaleString()} kcal</strong></div>
             <div className="info-row"><span>総消費カロリー (TDEE)</span><strong>{calcTDEE(previewProfile).toLocaleString()} kcal</strong></div>
-            <div className="info-row highlight"><span>目標カロリー / 日</span><strong>{calcTargetCalories(previewProfile).toLocaleString()} kcal</strong></div>
+            {goalDetails && goalDetails.days !== null && goalDetails.weightDiff !== null && (
+              <>
+                <div className="info-row">
+                  <span>残り日数</span>
+                  <strong>{goalDetails.days > 0 ? `${goalDetails.days}日` : '期限切れ'}</strong>
+                </div>
+                <div className="info-row">
+                  <span>1日あたりの調整</span>
+                  <strong style={{ color: goalDetails.dailyAdjustment < 0 ? 'var(--accent)' : '#4CAF50' }}>
+                    {goalDetails.dailyAdjustment > 0 ? '+' : ''}{goalDetails.dailyAdjustment.toLocaleString()} kcal
+                  </strong>
+                </div>
+              </>
+            )}
+            <div className="info-row highlight">
+              <span>目標カロリー / 日</span>
+              <strong>{goalDetails ? goalDetails.target.toLocaleString() : calcTDEE(previewProfile).toLocaleString()} kcal</strong>
+            </div>
           </div>
-          <p className="info-note">＊ Mifflin-St Jeor 式で計算</p>
+          <p className="info-note">＊ Mifflin-St Jeor 式 / 脂肪1kg=7,200kcal で計算</p>
         </div>
       )}
 

@@ -62,6 +62,12 @@ export async function migrate() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='birthday') THEN
         ALTER TABLE profiles ADD COLUMN birthday DATE;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='goal_weight') THEN
+        ALTER TABLE profiles ADD COLUMN goal_weight NUMERIC(5,2);
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='goal_date') THEN
+        ALTER TABLE profiles ADD COLUMN goal_date DATE;
+      END IF;
     END $$;
   `);
 
