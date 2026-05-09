@@ -54,12 +54,12 @@ export default function Profile({ profile, onSave, onLogout }) {
           <label>ニックネーム</label>
           <input placeholder="例: たろう" value={form.name} onChange={(e) => set('name', e.target.value)} />
         </div>
+        <div className="form-field">
+          <label>生年月日</label>
+          <input type="date" value={form.birthday} onChange={(e) => set('birthday', e.target.value)} />
+          {age !== null && <p className="field-hint">{age}歳</p>}
+        </div>
         <div className="form-row">
-          <div className="form-field">
-            <label>生年月日</label>
-            <input type="date" value={form.birthday} onChange={(e) => set('birthday', e.target.value)} />
-            {age !== null && <p className="field-hint">{age}歳</p>}
-          </div>
           <div className="form-field">
             <label>性別</label>
             <select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
@@ -67,11 +67,9 @@ export default function Profile({ profile, onSave, onLogout }) {
               <option value="female">女性</option>
             </select>
           </div>
-        </div>
-        <div className="form-row">
           <div className="form-field"><label>身長 (cm)</label><input type="number" placeholder="例: 170" value={form.height} onChange={(e) => set('height', e.target.value)} /></div>
-          <div className="form-field"><label>体重 (kg)</label><input type="number" step="0.1" placeholder="例: 65" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
         </div>
+        <div className="form-field"><label>体重 (kg)</label><input type="number" step="0.1" placeholder="例: 65" value={form.weight} onChange={(e) => set('weight', e.target.value)} /></div>
         <div className="form-field"><label>活動レベル</label><select value={form.activity_level} onChange={(e) => set('activity_level', e.target.value)}>{ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div className="form-field"><label>目標</label><select value={form.goal} onChange={(e) => set('goal', e.target.value)}>{GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
       </div>
