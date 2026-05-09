@@ -137,15 +137,13 @@ export default function Profile({ profile, onSave, onLogout }) {
 
       <div className="card">
         <h3 className="card-title">目標設定</h3>
-        <div className="form-row">
-          <div className="form-field">
-            <label>目標体重 (kg)</label>
-            <input type="number" step="0.1" placeholder="例: 60" value={form.goal_weight} onChange={(e) => set('goal_weight', e.target.value)} />
-          </div>
-          <div className="form-field">
-            <label>目標日</label>
-            <input type="date" value={form.goal_date} onChange={(e) => set('goal_date', e.target.value)} />
-          </div>
+        <div className="form-field">
+          <label>目標体重 (kg)</label>
+          <input type="number" step="0.1" placeholder="例: 60" value={form.goal_weight} onChange={(e) => set('goal_weight', e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label>目標日</label>
+          <input type="date" value={form.goal_date} onChange={(e) => set('goal_date', e.target.value)} />
         </div>
         {form.goal_weight && form.goal_date && form.weight && (
           <p className="field-hint" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
