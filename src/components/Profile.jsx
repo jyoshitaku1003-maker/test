@@ -1,25 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { saveProfile } from '../utils/api';
 import { calcBMR, calcTDEE, calcTargetCalories, calcAge } from '../utils/calculations';
-
-const THIS_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 80 }, (_, i) => THIS_YEAR - i);
-const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-function daysInMonth(year, month) {
-  if (!year || !month) return 31;
-  return new Date(year, month, 0).getDate();
-}
-
-function birthdayToYMD(birthday) {
-  if (!birthday) return { y: '', m: '', d: '' };
-  const [y, m, d] = birthday.split('-');
-  return { y: y || '', m: m ? String(Number(m)) : '', d: d ? String(Number(d)) : '' };
-}
-
-function ymdToBirthday(y, m, d) {
-  if (!y || !m || !d) return '';
-  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-}
 
 const ACTIVITY_OPTIONS = [
   { value: 'sedentary', label: '座り仕事が多い (×1.2)' },
@@ -35,24 +16,64 @@ const GOAL_OPTIONS = [
   { value: 'gain', label: '体重を増やす (+500 kcal/日)' },
 ];
 
+// YYYY-MM-DD → YYYY/MM/DD (display)
+function toDisplay(value) {
+  if (!value) return '';
+  const d = value.replace(/-/g, '');
+  if (d.length === 8) return `${d.slice(0,4)}/${d.slice(4,6)}/${d.slice(6,8)}`;
+  return value.replace(/-/g, '/');
+}
+
+// raw digit input → formatted display string
+function formatDigits(digits) {
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0,4)}/${digits.slice(4)}`;
+  return `${digits.slice(0,4)}/${digits.slice(4,6)}/${digits.slice(6,8)}`;
+}
+
+// formatted display → YYYY-MM-DD (for storage)
+function toValue(display) {
+  const d = display.replace(/\D/g, '');
+  if (d.length === 8) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+  return '';
+}
+
+function isValidDate(value) {
+  if (!value) return false;
+  const d = new Date(value);
+  return !isNaN(d.getTime());
+}
+
 export default function Profile({ profile, onSave, onLogout }) {
   const [form, setForm] = useState(
     profile || { name: '', birthday: '', gender: 'male', height: '', weight: '', activity_level: 'moderate', goal: 'lose' }
   );
+  const [birthdayInput, setBirthdayInput] = useState(() => toDisplay(profile?.birthday || ''));
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const calendarRef = useRef(null);
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
-  const { y: selYear, m: selMonth, d: selDay } = birthdayToYMD(form.birthday);
-  const dayCount = daysInMonth(Number(selYear), Number(selMonth));
-  const DAYS = Array.from({ length: dayCount }, (_, i) => i + 1);
+  const handleBirthdayChange = (e) => {
+    const raw = e.target.value;
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    const formatted = formatDigits(digits);
+    setBirthdayInput(formatted);
+    const value = toValue(formatted);
+    if (value && isValidDate(value)) {
+      set('birthday', value);
+    } else {
+      set('birthday', '');
+    }
+  };
 
-  const setBirthdayPart = (part, val) => {
-    const next = { y: selYear, m: selMonth, d: selDay, [part]: val };
-    const maxDay = daysInMonth(Number(next.y), Number(next.m));
-    if (next.d && Number(next.d) > maxDay) next.d = String(maxDay);
-    set('birthday', ymdToBirthday(next.y, next.m, next.d));
+  const handleCalendarChange = (e) => {
+    const value = e.target.value; // YYYY-MM-DD
+    if (value) {
+      set('birthday', value);
+      setBirthdayInput(toDisplay(value));
+    }
   };
 
   const handleSave = async () => {
@@ -72,7 +93,7 @@ export default function Profile({ profile, onSave, onLogout }) {
     ? { ...form, height: Number(form.height), weight: Number(form.weight), activityLevel: form.activity_level }
     : null;
 
-  const age = form.birthday ? calcAge(form.birthday) : null;
+  const age = form.birthday && isValidDate(form.birthday) ? calcAge(form.birthday) : null;
 
   return (
     <div className="screen">
@@ -86,21 +107,34 @@ export default function Profile({ profile, onSave, onLogout }) {
         </div>
         <div className="form-field">
           <label>生年月日</label>
-          <div className="birthday-selects">
-            <select value={selYear} onChange={(e) => setBirthdayPart('y', e.target.value)}>
-              <option value="">年</option>
-              {YEARS.map((y) => <option key={y} value={y}>{y}年</option>)}
-            </select>
-            <select value={selMonth} onChange={(e) => setBirthdayPart('m', e.target.value)}>
-              <option value="">月</option>
-              {MONTHS.map((m) => <option key={m} value={m}>{m}月</option>)}
-            </select>
-            <select value={selDay} onChange={(e) => setBirthdayPart('d', e.target.value)}>
-              <option value="">日</option>
-              {DAYS.map((d) => <option key={d} value={d}>{d}日</option>)}
-            </select>
+          <div className="birthday-input-row">
+            <input
+              className="birthday-text"
+              inputMode="numeric"
+              placeholder="例: 19970523"
+              value={birthdayInput}
+              onChange={handleBirthdayChange}
+            />
+            <button
+              type="button"
+              className="calendar-btn"
+              onClick={() => calendarRef.current?.showPicker?.() || calendarRef.current?.click()}
+              aria-label="カレンダーから選択"
+            >
+              📅
+            </button>
+            <input
+              ref={calendarRef}
+              type="date"
+              value={form.birthday}
+              onChange={handleCalendarChange}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+            />
           </div>
           {age !== null && <p className="field-hint">{age}歳</p>}
+          {birthdayInput.replace(/\D/g, '').length === 8 && !age && (
+            <p className="field-hint" style={{ color: 'var(--danger)' }}>無効な日付です</p>
+          )}
         </div>
         <div className="form-row">
           <div className="form-field">

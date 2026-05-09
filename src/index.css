@@ -407,8 +407,22 @@ body {
 .form-row .form-field { flex: 1; }
 .three-col { display: flex; gap: 8px; }
 .three-col .form-field { flex: 1; }
-.birthday-selects { display: flex; gap: 6px; }
-.birthday-selects select { flex: 1; min-width: 0; }
+.birthday-input-row { display: flex; gap: 8px; align-items: center; position: relative; }
+.birthday-text { flex: 1; }
+.calendar-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
 
 /* ── Buttons ── */
 .btn-primary {
