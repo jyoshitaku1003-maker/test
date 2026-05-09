@@ -2,6 +2,25 @@ import { useState } from 'react';
 import { saveProfile } from '../utils/api';
 import { calcBMR, calcTDEE, calcTargetCalories, calcAge } from '../utils/calculations';
 
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 80 }, (_, i) => THIS_YEAR - i);
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+function daysInMonth(year, month) {
+  if (!year || !month) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
+function birthdayToYMD(birthday) {
+  if (!birthday) return { y: '', m: '', d: '' };
+  const [y, m, d] = birthday.split('-');
+  return { y: y || '', m: m ? String(Number(m)) : '', d: d ? String(Number(d)) : '' };
+}
+
+function ymdToBirthday(y, m, d) {
+  if (!y || !m || !d) return '';
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 const ACTIVITY_OPTIONS = [
   { value: 'sedentary', label: '座り仕事が多い (×1.2)' },
   { value: 'light', label: '軽い運動 (週1〜3回) (×1.375)' },
@@ -24,6 +43,17 @@ export default function Profile({ profile, onSave, onLogout }) {
   const [error, setError] = useState('');
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+
+  const { y: selYear, m: selMonth, d: selDay } = birthdayToYMD(form.birthday);
+  const dayCount = daysInMonth(Number(selYear), Number(selMonth));
+  const DAYS = Array.from({ length: dayCount }, (_, i) => i + 1);
+
+  const setBirthdayPart = (part, val) => {
+    const next = { y: selYear, m: selMonth, d: selDay, [part]: val };
+    const maxDay = daysInMonth(Number(next.y), Number(next.m));
+    if (next.d && Number(next.d) > maxDay) next.d = String(maxDay);
+    set('birthday', ymdToBirthday(next.y, next.m, next.d));
+  };
 
   const handleSave = async () => {
     setError('');
@@ -56,7 +86,20 @@ export default function Profile({ profile, onSave, onLogout }) {
         </div>
         <div className="form-field">
           <label>生年月日</label>
-          <input type="date" value={form.birthday} onChange={(e) => set('birthday', e.target.value)} />
+          <div className="birthday-selects">
+            <select value={selYear} onChange={(e) => setBirthdayPart('y', e.target.value)}>
+              <option value="">年</option>
+              {YEARS.map((y) => <option key={y} value={y}>{y}年</option>)}
+            </select>
+            <select value={selMonth} onChange={(e) => setBirthdayPart('m', e.target.value)}>
+              <option value="">月</option>
+              {MONTHS.map((m) => <option key={m} value={m}>{m}月</option>)}
+            </select>
+            <select value={selDay} onChange={(e) => setBirthdayPart('d', e.target.value)}>
+              <option value="">日</option>
+              {DAYS.map((d) => <option key={d} value={d}>{d}日</option>)}
+            </select>
+          </div>
           {age !== null && <p className="field-hint">{age}歳</p>}
         </div>
         <div className="form-row">

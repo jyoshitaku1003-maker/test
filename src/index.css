@@ -407,6 +407,8 @@ body {
 .form-row .form-field { flex: 1; }
 .three-col { display: flex; gap: 8px; }
 .three-col .form-field { flex: 1; }
+.birthday-selects { display: flex; gap: 6px; }
+.birthday-selects select { flex: 1; min-width: 0; }
 
 /* ── Buttons ── */
 .btn-primary {
