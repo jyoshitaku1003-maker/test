@@ -151,8 +151,9 @@ export default function Dashboard({ profile, onTabChange }) {
             <YAxis
               tick={{ fontSize: 10 }}
               tickCount={5}
-              tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
-              width={36}
+              interval="preserveStartEnd"
+              tickFormatter={(v) => Math.round(v / 500) * 500}
+              width={42}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
