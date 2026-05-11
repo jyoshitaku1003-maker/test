@@ -140,6 +140,14 @@ export default function Dashboard({ profile, onTabChange }) {
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
           緑=消費&gt;摂取（減量ペース）　赤=摂取&gt;消費（増量ペース）
         </p>
+        {(() => {
+          const vals = chartData.flatMap((d) => [d.intake, d.burn]).filter((v) => v != null && v > 0);
+          const step = 500;
+          const minV = vals.length ? Math.floor(Math.min(...vals) / step) * step : 0;
+          const maxV = vals.length ? Math.ceil(Math.max(...vals) / step) * step : 3000;
+          const yTicks = [];
+          for (let v = minV; v <= maxV; v += step) yTicks.push(v);
+          return (
         <ResponsiveContainer width="100%" height={220}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
@@ -150,9 +158,8 @@ export default function Dashboard({ profile, onTabChange }) {
             />
             <YAxis
               tick={{ fontSize: 10 }}
-              tickCount={5}
-              interval="preserveStartEnd"
-              tickFormatter={(v) => Math.round(v / 500) * 500}
+              ticks={yTicks}
+              domain={[minV, maxV]}
               width={52}
             />
             <Tooltip content={<CustomTooltip />} />
@@ -197,6 +204,8 @@ export default function Dashboard({ profile, onTabChange }) {
             />
           </ComposedChart>
         </ResponsiveContainer>
+          );
+        })()}
       </div>
 
       <div className="metrics-row">
