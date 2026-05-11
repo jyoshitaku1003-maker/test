@@ -224,10 +224,10 @@ export default function FoodLog({ profile }) {
             {mode === 'image' && (
               <>
                 <div className="upload-area" onClick={() => fileRef.current?.click()}>
-                  <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleImageAnalyze} />
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageAnalyze} />
                   <div className="upload-icon">📷</div>
                   <p>食事の写真またはレシートを選択</p>
-                  <span className="upload-hint">タップしてファイルを選択</span>
+                  <span className="upload-hint">カメラ撮影 / カメラロールから選択</span>
                 </div>
                 {loading && <p className="loading-msg">画像を解析中...</p>}
                 {error && <p className="error-msg">{error}</p>}
