@@ -153,7 +153,7 @@ export default function Dashboard({ profile, onTabChange }) {
               tickCount={5}
               interval="preserveStartEnd"
               tickFormatter={(v) => Math.round(v / 500) * 500}
-              width={42}
+              width={52}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
