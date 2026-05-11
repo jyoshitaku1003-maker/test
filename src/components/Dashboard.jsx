@@ -52,12 +52,12 @@ export default function Dashboard({ profile, onTabChange }) {
     const dates = getLast14Days();
     const from = dates[0];
     const to = dates[dates.length - 1];
-    const tdee = calcTDEE({ ...profile, activityLevel: profile.activity_level });
 
     Promise.all([
       getFoodDailySummary(from, to).catch(() => []),
       getExerciseDailySummary(from, to).catch(() => []),
-    ]).then(([foodSummary, exerciseSummary]) => {
+      getWeightLog().catch(() => []),
+    ]).then(([foodSummary, exerciseSummary, weightLog]) => {
       setChartData(dates.map((date) => {
         const d = new Date(date + 'T00:00:00');
         const label = `${d.getMonth() + 1}/${d.getDate()}`;
@@ -65,7 +65,17 @@ export default function Dashboard({ profile, onTabChange }) {
         const exEntry = exerciseSummary.find((e) => e.date === date);
         const intakeKcal = foodEntry?.calories ?? null;
         const exercise = exEntry?.calories ?? 0;
-        const burn = tdee + exercise;
+
+        // 当日に最も近い体重を使ってTDEEを計算
+        const closestWeight = weightLog.length
+          ? weightLog.reduce((best, w) =>
+              Math.abs(w.date.localeCompare(date)) < Math.abs(best.date.localeCompare(date)) ? w : best
+            )
+          : null;
+        const weight = closestWeight ? Number(closestWeight.weight) : (profile.weight ? Number(profile.weight) : null);
+        const dayProfile = weight ? { ...profile, weight, activityLevel: profile.activity_level } : null;
+        const burn = dayProfile ? calcTDEE(dayProfile) + exercise : null;
+
         return { date, label, intake: intakeKcal, burn };
       }));
     });
