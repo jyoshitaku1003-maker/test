@@ -306,6 +306,8 @@ body {
 .empty-hint { color: var(--text-muted); font-size: 13px; padding: 8px 4px; }
 
 /* ── FAB ── */
+.screen-fab { padding-bottom: 80px; }
+
 .fab {
   position: fixed;
   bottom: calc(var(--nav-height) + 16px);

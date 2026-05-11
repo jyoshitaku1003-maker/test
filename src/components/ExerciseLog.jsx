@@ -44,7 +44,7 @@ export default function ExerciseLog({ profile }) {
   const totalBurned = entries.reduce((s, e) => s + e.calories, 0);
 
   return (
-    <div className="screen">
+    <div className="screen screen-fab">
       <div className="screen-header">
         <h1>運動記録</h1>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="date-picker" />

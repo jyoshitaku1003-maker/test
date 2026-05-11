@@ -149,7 +149,7 @@ export default function FoodLog({ profile }) {
   const byMeal = MEAL_TYPES.map((mt) => ({ label: mt, items: entries.filter((e) => e.mealType === mt) }));
 
   return (
-    <div className="screen">
+    <div className="screen screen-fab">
       <div className="screen-header">
         <h1>食事記録</h1>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="date-picker" />
