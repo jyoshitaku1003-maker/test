@@ -143,7 +143,7 @@ export default function Dashboard({ profile, onTabChange }) {
         {(() => {
           const vals = chartData.flatMap((d) => [d.intake, d.burn]).filter((v) => v != null && v > 0);
           const step = 500;
-          const minV = vals.length ? Math.floor(Math.min(...vals) / step) * step : 0;
+          const minV = 0;
           const maxV = vals.length ? Math.ceil(Math.max(...vals) / step) * step : 3000;
           const yTicks = [];
           for (let v = minV; v <= maxV; v += step) yTicks.push(v);
